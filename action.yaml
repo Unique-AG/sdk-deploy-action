@@ -5,10 +5,56 @@ inputs:
     description: 'Name of the module to deploy'
     required: true
     type: string
+  environment:
+    description: 'Name of the environment to deploy the module to'
+    required: true
+    type: string
+  resourceGroupName:
+    description: 'Name of the resource group to deploy the module to'
+    required: true
+    type: string
+  acrLoginServer:
+    description: 'Azure Container Registry login server'
+    required: true
+    type: string
+  azureClientId:
+    description: 'Azure client ID'
+    required: true
+    type: string
+  azureTenantId:
+    description: 'Azure tenant ID'
+    required: true
+    type: string
+  azureSubscriptionId:
+    description: 'Azure subscription ID'
+    required: true
+    type: string
+  acrUsername:
+    description: 'Azure Container Registry username'
+    required: true
+    type: string
+  acrPassword:
+    description: 'Azure Container Registry password'
+    required: true
+    type: string
+  agePrivateKey:
+    description: 'Age private key'
+    required: true
+    type: string
   app_name:
     description: 'Name of the Flask app (and file)'
     required: false
     default: 'app'
+    type: string
+  encrypted_env_file:
+    description: 'Name of the encrypted environment file'
+    required: false
+    default: '.env.enc'
+    type: string
+  dockerfile:
+    description: 'Dockefile for the container app'
+    required: false
+    default: './Dockerfile'
     type: string
   sops_version:
     description: 'Version of sops to use'
@@ -44,6 +90,18 @@ outputs:
   fqdn:
     description: "Fully Qualified Domain Name of the deployed Container App"
     value: ${{ steps.get-fqdn.outputs.fqdn }}
+  appName:
+    description: "Name of the deployed Container App"
+    value: ${{ steps.get-fqdn.outputs.appName }}
+  location:
+    description: "Azure Location of the deployed Container App"
+    value: ${{ steps.get-fqdn.outputs.location }}
+  environment:
+    description: "Github Environment of the deployed Container App"
+    value: ${{ steps.get-fqdn.outputs.environment }}
+  resourceGroupName:
+    description: "Azure Resource Group of the deployed Container App"
+    value: ${{ steps.get-fqdn.outputs.resourceGroupName }}
 runs:
   using: "composite"
   steps:
@@ -54,15 +112,16 @@ runs:
       shell: bash
       run: |
         MODULE=${{ inputs.module }}
+        ENCRYPTED_ENV_FILE=${{ inputs.encrypted_env_file }}
         # Check if MODULE only contains letters a-z and underscores
         if ! [[ "${MODULE}" =~ ^[a-z_]+$ ]]; then
           echo "The module name must only contain lowercase letters (a-z) and underscores."
           exit 1
         fi
 
-        # Check for .env.enc file existence
-        if [ ! -f "./${MODULE}/.env.enc" ]; then
-          echo ".env.enc file does not exist in the folder ./${MODULE}"
+        # Check for encrypted env file existence
+        if [ ! -f "./${MODULE}/${ENCRYPTED_ENV_FILE}" ]; then
+          echo "${ENCRYPTED_ENV_FILE} file does not exist in the folder ./${MODULE}"
           exit 1
         fi
         
@@ -80,14 +139,16 @@ runs:
     - name: Set up Azure CLI
       uses: azure/login@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ inputs.azureClientId }}
+        tenant-id: ${{ inputs.azureTenantId }}
+        subscription-id: ${{ inputs.azureSubscriptionId }}
 
     - name: Login to Azure Container Registry
       uses: azure/docker-login@v1
       with:
-        login-server: ${{ vars.ACR_LOGIN_SERVER }}
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
+        login-server: ${{ inputs.acrLoginServer }}
+        username: ${{ inputs.acrUsername }}
+        password: ${{ inputs.acrPassword }}
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v3
@@ -99,14 +160,15 @@ runs:
       uses: docker/build-push-action@v5
       with:
         context: ./${{ inputs.module }}
-        file: ./Dockerfile
+        file: ${{ inputs.dockerfile }}
         push: true
-        tags: ${{ vars.ACR_LOGIN_SERVER }}/${{ inputs.module }}:${{ github.sha }}
-        cache-from: type=registry,ref=${{ vars.ACR_LOGIN_SERVER }}/${{ inputs.module }}:${{ inputs.cacheTag }}
-        cache-to: type=registry,ref=${{ vars.ACR_LOGIN_SERVER }}/${{ inputs.module }}:${{ inputs.cacheTag }},mode=max
+        tags: ${{ inputs.acrLoginServer }}/${{ inputs.module }}:${{ github.sha }}
+        cache-from: type=registry,ref=${{ inputs.acrLoginServer }}/${{ inputs.module }}:${{ inputs.cacheTag }}
+        cache-to: type=registry,ref=${{ inputs.acrLoginServer }}/${{ inputs.module }}:${{ inputs.cacheTag }},mode=max
         build-args: |
           MODULE=${{ inputs.module }}
           APP_NAME=${{ inputs.app_name }}
+          ENCRYPTED_ENV_FILE=${{ inputs.encrypted_env_file }}
           POETRY_VERSION=${{ inputs.poetry_version }}
           SOPS_VERSION=${{ inputs.sops_version }}
 
@@ -114,8 +176,9 @@ runs:
       shell: bash
       env:
         INPUT_VARIABLE: ${{ inputs.module }}
+        ENVIRONMENT_NAME: ${{ inputs.environment }}
       run: |
-        URL_SAFE_MODULE_NAME="${INPUT_VARIABLE//_/-}"
+        URL_SAFE_MODULE_NAME="${INPUT_VARIABLE//_/-}-${ENVIRONMENT_NAME}"
         echo "URL_SAFE_MODULE_NAME=$URL_SAFE_MODULE_NAME" >> $GITHUB_ENV
 
     - name: Check if the Azure Container Apps Environment exists
@@ -131,28 +194,27 @@ runs:
       if: env.Exists == ''
       with:
         inlineScript: |
-          az containerapp env create --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group sdk-deployments --location ${{ inputs.location }}
+          az containerapp env create --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resourceGroupName }} --location ${{ inputs.location }}
 
     - name: Extract ACR Name
       id: acr_extract
       shell: bash
-      run: echo "ACR_NAME=$(echo ${{ vars.ACR_LOGIN_SERVER }} | cut -d'.' -f1)" >> $GITHUB_ENV
-      shell: bash
+      run: echo "ACR_NAME=$(echo ${{ inputs.acrLoginServer }} | cut -d'.' -f1)" >> $GITHUB_ENV
 
     - name: Deploy Container App
       uses: Unique-AG/container-apps-deploy-action@v3
       with:
         containerAppName: ${{ env.URL_SAFE_MODULE_NAME }}
-        resourceGroup: sdk-deployments
+        resourceGroup: ${{ inputs.resourceGroupName }}
         disableTelemetry: true
         acrName: ${{ env.ACR_NAME }}
-        acrUsername: ${{ secrets.ACR_USERNAME }}
-        acrPassword: ${{ secrets.ACR_PASSWORD }}
-        imageToDeploy: ${{ vars.ACR_LOGIN_SERVER }}/${{ inputs.module }}:${{ github.sha }}
+        acrUsername: ${{ inputs.acrUsername }}
+        acrPassword: ${{ inputs.acrPassword }}
+        imageToDeploy: ${{ inputs.acrLoginServer }}/${{ inputs.module }}:${{ github.sha }}
         location: ${{ inputs.location }}
         targetPort: 8080
         containerAppEnvironment: ${{ env.URL_SAFE_MODULE_NAME }}
-        environmentVariables: SOPS_AGE_KEY=${{ secrets.AGE_PRIVATE_KEY }}
+        environmentVariables: SOPS_AGE_KEY=${{ inputs.agePrivateKey }}
 
     - name: Set Scaling for Container App
       uses: azure/cli@v2
@@ -160,7 +222,7 @@ runs:
         inlineScript: |
           az containerapp update \
             --name ${{ env.URL_SAFE_MODULE_NAME }} \
-            --resource-group sdk-deployments \
+            --resource-group ${{ inputs.resourceGroupName }} \
             --min-replicas ${{ inputs.min_replicas }} \
             --max-replicas ${{ inputs.max_replicas }} 
 
@@ -169,6 +231,9 @@ runs:
       uses: azure/cli@v2
       with:
         inlineScript: |
-          FQDN=$(az containerapp show --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group sdk-deployments --query properties.configuration.ingress.fqdn -o tsv)
+          FQDN=$(az containerapp show --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resourceGroupName }} --query properties.configuration.ingress.fqdn -o tsv)
           echo "fqdn=$FQDN" >> $GITHUB_OUTPUT
-          echo "Container App FQDN: $FQDN"
+          echo "appName=${{ env.URL_SAFE_MODULE_NAME }}" >> $GITHUB_OUTPUT
+          echo "location=${{ inputs.location }}" >> $GITHUB_OUTPUT
+          echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "resourceGroupName=${{ inputs.resourceGroupName }}" >> $GITHUB_OUTPUT
