@@ -86,6 +86,14 @@ inputs:
     required: false
     default: 'dockercache'
     type: string
+  cpu:
+    description: 'CPUs to allocate for the container app cores from 0.25 - 2.0, e.g. 0.5.'
+    required: false
+    default: '0.5'
+  memory:
+    description: 'Required memory from 0.5 - 4.0, will be converted to *Gi and Gi must not be supplied.'
+    required: false
+    default: '1'
 outputs:
   fqdn:
     description: "Fully Qualified Domain Name of the deployed Container App"
@@ -133,8 +141,36 @@ runs:
           echo "pyproject.toml must specify a dependency to gunicorn and python-dotenv"
           exit 1
         fi
-        
         echo "All requirements met."
+
+    - name: Check inputs
+      shell: bash
+      run: |
+        CPU=${{ inputs.module }}
+        MEM=${{ inputs.memory }}
+        
+        is_valid_number() {
+            number=$1
+            lower_limit=$2
+            upper_limit=$3
+            re='^[0-9]+([.][0-9]+)?$'  # Regular expression for a valid number
+            if echo "$number" | grep -Eq "$re"; then
+                if [ "$(echo "$number >= $lower_limit" | bc -l)" = 1 ] && [ "$(echo "$number <= $upper_limit" | bc -l)" = 1 ]; then
+                    return 0
+                fi
+            fi
+            return 1
+        }
+        
+        if ! is_valid_number "$CPU" 0.25 2; then
+            echo "CPU setting is invalid, must be between 0.25 and 2!"
+        fi
+
+        if ! is_valid_number "$CPU" 0.5 4; then
+            echo "Memory setting is invalid, must be between 0.5 and 4!"
+        fi
+
+        echo "All inputs valid."
 
     - name: Set up Azure CLI
       uses: azure/login@v2
@@ -219,12 +255,17 @@ runs:
     - name: Set Scaling for Container App
       uses: azure/cli@v2
       with:
+        # TODO: Implement max_replicas
+        # Can not use max_replicas as of now as we would need also need to define scaling settings that it works.
         inlineScript: |
+          echo "🔔 Setting ${{ inputs.max_replicas }} is currently not supported and will default to the min_replicas ${{ inputs.min_replicas }} as of now, this means that auto-scaling is not active."
           az containerapp update \
             --name ${{ env.URL_SAFE_MODULE_NAME }} \
             --resource-group ${{ inputs.resource_group_name }} \
+            --cpu ${{ inputs.cpu }} \
+            --memory ${{ inputs.memory }}Gi \
             --min-replicas ${{ inputs.min_replicas }} \
-            --max-replicas ${{ inputs.max_replicas }} 
+            --max-replicas ${{ inputs.min_replicas }} 
 
     - name: Get FQDN of the Container App
       id: get-fqdn
