@@ -43,7 +43,7 @@ To use this GitHub Action in your workflow, add the following step:
 
 ```yaml
 - name: Deploy Unique SDK Module
-  uses: Unique-AG/sdk-deploy-action@v1
+  uses: Unique-AG/sdk-deploy-action@v2
   with:
     module: 'your-module-name'
     environment: 'your-environment-name'
