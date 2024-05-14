@@ -14,6 +14,7 @@ The action requires the following inputs:
 * `acr_username`: Azure Container Registry username. **(Required)**
 * `acr_password`: Azure Container Registry password. **(Required)**
 * `age_private_key`: Age private key. **(Required)**
+* `azure_storage_account_id`: Azure Storage Account ID to store logs. **(Required)**
 
 The action also supports the following optional inputs:
 
@@ -55,6 +56,7 @@ To use this GitHub Action in your workflow, add the following step:
     acr_username: ${{ secrets.ACR_USERNAME }}
     acr_password: ${{ secrets.ACR_PASSWORD }}
     age_private_key: ${{ secrets.AGE_PRIVATE_KEY }}
+    azure_storage_account_id: ${{ secrets.AZURE_STORAGE_ACCOUNT_ID }}
     # Optional inputs can be omitted if defaults are suitable
 ```
 
