@@ -41,6 +41,10 @@ inputs:
     description: 'Age private key'
     required: true
     type: string
+  storage_account_id:
+    description: 'Azure Storage Account ID to store logs'
+    required: true
+    type: string
   app_name:
     description: 'Name of the Flask app (and file)'
     required: false
@@ -231,6 +235,24 @@ runs:
       with:
         inlineScript: |
           az containerapp env create --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resource_group_name }} --location ${{ inputs.location }}
+
+    - name: Update Azure Container Apps Environment
+      uses: azure/cli@v2
+      if: env.Exists != ''
+      with:
+        inlineScript: |
+          az containerapp env update --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resource_group_name }} --logs-destination azure-monitor
+
+    - name: Add Diagnostic Setting
+      uses: azure/cli@v2
+      with:
+        inlineScript: |
+          az monitor diagnostic-settings create \
+            --resource /subscriptions/${{ inputs.azure_subscription_id }}/resourceGroups/${{ inputs.resource_group_name }}/providers/Microsoft.App/managedEnvironments/${{ env.URL_SAFE_MODULE_NAME }} \
+            -n ${{ env.URL_SAFE_MODULE_NAME }}-diagnostic-setting \
+            --storage-account ${{ inputs.storage_account_id }} \
+            --logs "[{category:ContainerAppConsoleLogs,enabled:true,retentionPolicy:{days:0,enabled:false}},{category:ContainerAppSystemLogs,enabled:false,retentionPolicy:{days:0,enabled:false}},{category:AppEnvSpringAppConsoleLogs,enabled:false,retentionPolicy:{days:0,enabled:false}}]" \
+            --metrics "[{category:AllMetrics,enabled:false,retention-policy:{enabled:false,days:0}}]"
 
     - name: Extract ACR Name
       id: acr_extract
