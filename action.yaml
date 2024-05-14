@@ -41,7 +41,7 @@ inputs:
     description: 'Age private key'
     required: true
     type: string
-  storage_account_id:
+  azure_storage_account_id:
     description: 'Azure Storage Account ID to store logs'
     required: true
     type: string
@@ -250,7 +250,7 @@ runs:
           az monitor diagnostic-settings create \
             --resource /subscriptions/${{ inputs.azure_subscription_id }}/resourceGroups/${{ inputs.resource_group_name }}/providers/Microsoft.App/managedEnvironments/${{ env.URL_SAFE_MODULE_NAME }} \
             -n ${{ env.URL_SAFE_MODULE_NAME }}-diagnostic-setting \
-            --storage-account ${{ inputs.storage_account_id }} \
+            --storage-account ${{ inputs.azure_storage_account_id }} \
             --logs "[{category:ContainerAppConsoleLogs,enabled:true,retentionPolicy:{days:0,enabled:false}},{category:ContainerAppSystemLogs,enabled:false,retentionPolicy:{days:0,enabled:false}},{category:AppEnvSpringAppConsoleLogs,enabled:false,retentionPolicy:{days:0,enabled:false}}]" \
             --metrics "[{category:AllMetrics,enabled:false,retention-policy:{enabled:false,days:0}}]"
 
