@@ -234,7 +234,7 @@ runs:
       if: env.Exists == ''
       with:
         inlineScript: |
-          az containerapp env create --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resource_group_name }} --location ${{ inputs.location }}
+          az containerapp env create --name ${{ env.URL_SAFE_MODULE_NAME }} --resource-group ${{ inputs.resource_group_name }} --location ${{ inputs.location }} --logs-destination azure-monitor
 
     - name: Update Azure Container Apps Environment
       uses: azure/cli@v2
