@@ -1,6 +1,10 @@
 # Deploy Unique SDK Modules GitHub Action
 This GitHub Action is designed to automate the deployment of Python modules developed with the Unique SDK to Azure Container Apps. It encapsulates the process of checking module requirements, setting up Azure CLI, logging into Azure Container Registry (ACR), building and pushing Docker images, and deploying the container app with specified scaling settings.
 
+## Upgrading
+> [!TIP]
+> As this action is yet immature, it is subject to frequent changes. Please check [CHANGELOG](./CHANGELOG.md) on how to upgrade.
+
 ## Inputs
 The action requires the following inputs:
 
