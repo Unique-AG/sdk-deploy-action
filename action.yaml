@@ -91,11 +91,11 @@ inputs:
     default: 'dockercache'
     type: string
   cpu:
-    description: 'CPUs to allocate for the container app cores from 0.25 - 2.0, e.g. 0.5.'
+    description: 'CPUs to allocate for the container app cores.'
     required: false
     default: '0.5'
   memory:
-    description: 'Required memory from 0.5 - 4.0, will be converted to *Gi and Gi must not be supplied.'
+    description: 'Required memory, will be converted to *Gi and Gi must not be supplied.'
     required: false
     default: '1'
 outputs:

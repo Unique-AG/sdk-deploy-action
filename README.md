@@ -31,8 +31,11 @@ The action also supports the following optional inputs:
 * `max_replicas`: Maximum number of replicas for the container app. Default: `1`
 * `location`: Location of the Azure Container Apps environment. Default: `switzerlandnorth`
 * `cache_tag`: Tag to use for caching the docker build. Default: `dockercache`
-* `cpu`: CPUs to allocate for the container app cores from 0.25 - 2.0, e.g. 0.5. Defaults to `0.5`.
-* `memory`: Required memory from 0.5 - 4.0, will be converted to *Gi and Gi must not be supplied. Defaults to `1`(Gi).
+* `cpu`: CPUs to allocate for the container app cores. Defaults to `0.5`.
+* `memory`: Required memory, will be converted to *Gi and Gi must not be supplied. Defaults to `1`(Gi).
+
+> [!TIP]
+> The latest possible `cpu` and `memory` combinations can be found at [Workload profiles in Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/workload-profiles-overview). The Action will error out if one chooses an invalid combination of `cpu` and `memory`.
 
 ## Outputs
 The action provides the following outputs:
