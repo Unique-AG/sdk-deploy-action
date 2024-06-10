@@ -35,7 +35,7 @@ The action also supports the following optional inputs:
 * `memory`: Required memory, will be converted to *Gi and Gi must not be supplied. Defaults to `1`(Gi).
 
 > [!TIP]
-> If you run into an error, the available combinations can be seen in the error log.
+> If you run into an error, the available `cpu`/`memory` combinations can be seen in the error log.
 
 ## Outputs
 The action provides the following outputs:
