@@ -35,7 +35,7 @@ The action also supports the following optional inputs:
 * `memory`: Required memory, will be converted to *Gi and Gi must not be supplied. Defaults to `1`(Gi).
 
 > [!TIP]
-> The latest possible `cpu` and `memory` combinations can be found at [Workload profiles in Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/workload-profiles-overview). The Action will error out if one chooses an invalid combination of `cpu` and `memory`.
+> If you run into an error, the available combinations can be seen in the error log.
 
 ## Outputs
 The action provides the following outputs:
