@@ -91,11 +91,11 @@ inputs:
     default: 'dockercache'
     type: string
   cpu:
-    description: 'CPUs to allocate for the container app cores from 0.25 - 2.0, e.g. 0.5.'
+    description: 'CPUs to allocate for the container app cores.'
     required: false
     default: '0.5'
   memory:
-    description: 'Required memory from 0.5 - 4.0, will be converted to *Gi and Gi must not be supplied.'
+    description: 'Required memory, will be converted to *Gi and Gi must not be supplied.'
     required: false
     default: '1'
 outputs:
@@ -146,35 +146,6 @@ runs:
           exit 1
         fi
         echo "All requirements met."
-
-    - name: Check inputs
-      shell: bash
-      run: |
-        CPU=${{ inputs.module }}
-        MEM=${{ inputs.memory }}
-        
-        is_valid_number() {
-            number=$1
-            lower_limit=$2
-            upper_limit=$3
-            re='^[0-9]+([.][0-9]+)?$'  # Regular expression for a valid number
-            if echo "$number" | grep -Eq "$re"; then
-                if [ "$(echo "$number >= $lower_limit" | bc -l)" = 1 ] && [ "$(echo "$number <= $upper_limit" | bc -l)" = 1 ]; then
-                    return 0
-                fi
-            fi
-            return 1
-        }
-        
-        if ! is_valid_number "$CPU" 0.25 2; then
-            echo "CPU setting is invalid, must be between 0.25 and 2!"
-        fi
-
-        if ! is_valid_number "$CPU" 0.5 4; then
-            echo "Memory setting is invalid, must be between 0.5 and 4!"
-        fi
-
-        echo "All inputs valid."
 
     - name: Set up Azure CLI
       uses: azure/login@v2
