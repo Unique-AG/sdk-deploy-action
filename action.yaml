@@ -98,6 +98,11 @@ inputs:
     description: 'Required memory, will be converted to *Gi and Gi must not be supplied.'
     required: false
     default: '1'
+  build_args:
+    description: 'Additional build arguments for the Docker build'
+    required: false
+    default: ''
+    type: string
 outputs:
   fqdn:
     description: "Fully Qualified Domain Name of the deployed Container App"
@@ -182,6 +187,7 @@ runs:
           ENCRYPTED_ENV_FILE=${{ inputs.encrypted_env_file }}
           POETRY_VERSION=${{ inputs.poetry_version }}
           SOPS_VERSION=${{ inputs.sops_version }}
+          ${{ inputs.build_args }}
 
     - name: Set url-safe module name
       shell: bash
